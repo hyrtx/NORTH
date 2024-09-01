@@ -29,6 +29,7 @@ The analysis will address the following specific questions:
 - **Support for Decision-Making**: Provide concrete data to support management and operational decisions.
 
 ## Data Understanding
+This stage involves getting to know the data, such as the tables and column names, primary and foreign keys, relationships between tables and the data types in each table.
 
 ### Dataset Description
 The **Northwind Traders database** is a sample dataset simulating the operations of a food import and export company. The database covers various operational and commercial aspects of the company, including:
@@ -45,17 +46,67 @@ The database consists of **14 tables**, which are interrelated to provide a comp
 ![Northwind Traders Tables Schema](assets/northwind-er-diagram.png)
 
 ### Table Structure
-Below is an overview of the main tables involved in the analysis:
+Not all the data we have available in the Data Repository is important to the problem. At this stage, we will select the tables with the variables that really matter to answer the business questions.
 
-## Data Preparation
+We already have access to the database schema, but if we needed to, we could list them using the following query:
+
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE 
+	table_schema NOT IN ('information_schema', 'pg_catalog')
+	AND table_type = 'BASE TABLE'
+ORDER BY
+	table_schema,
+	table_name;
+```
+
+By inspecting the available schema, we were able to define the tables that we will use in the analysis:
+
+1. **orders**
+2. **order_details**
+3. **products**
+4. **customers**
+
+Let's also check which columns are in each table of interest through the query:
+
+```sql
+SELECT 
+	table_name,
+	column_name,
+	data_type,
+	is_nullable,
+	column_default
+FROM information_schema.columns
+WHERE 
+	table_schema NOT IN ('information_schema', 'pg_catalog')
+	AND table_name IN ('orders', 'order_details', 'products', 'customers')
+ORDER BY 
+	table_name,
+	ordinal_position;
+```
+
+The `is_nullable` column allows us to check which variables accept `NULL` values. From this, we were able to generate some valuable information about the tables:
+
+- **orders**
+    - With the exception of `order_id`, all the other columns are nullable. This is very dangerous, because it means that we can have an order without any information other than the id.
+- **order_details**
+    - There is no column that accepts `NULL` values in the table. 
+- **products**
+    - Neither `product_id` nor `product-name` accept `NULL` values.
+    - The `unit_price` column can have `NULL` values, which is strange since this type of information it's usually mandatory.
+- **customers**
+    - All the columns except for `customer_id` and `company_name` accept `NULL` values.
+    - Since the `country` column accepts `NULL` values, we have to be cautious because one of the business questions involves a geographical filter.
 
 ### Data Quality
 Before proceeding with the analysis, an assessment of data quality will be conducted to identify and address potential issues.
 
-#### Missing Data
+#### Identifying and removing duplicate records
+#### Checking for for fields with missing or incomplete information.
+#### Standardize the data
 
-
-
+## Data Preparation
 ### Data Extraction and Loading
 ### Data Cleaning
 ### Data Transformation and Integration
