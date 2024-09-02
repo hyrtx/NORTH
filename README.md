@@ -153,8 +153,52 @@ From the output, we check that:
 ### Data Quality
 Before proceeding with the analysis, an assessment of data quality will be conducted to identify and address potential issues.
 
-#### Identifying and removing duplicate records
+#### Identifying and eliminating possible duplicate records
+
+```sql
+-- Checking duplicates (orders)
+SELECT 
+	order_id,
+	COUNT(*) AS occurrences
+FROM orders
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+
+-- Checking duplicates (order_details)
+SELECT
+	order_id,
+	product_id,
+	COUNT(*) AS occurrences
+FROM order_details
+GROUP BY
+	order_id,
+	product_id
+HAVING COUNT(*) > 1;
+
+-- Checking duplicates (products)
+SELECT
+	product_id,
+	COUNT(*) AS occurrences
+FROM products
+GROUP BY
+	product_id
+HAVING COUNT(*) > 1;
+
+-- Checking duplicates (customers)
+SELECT 
+	customer_id,
+	COUNT(*) AS occurrences
+FROM customers
+GROUP BY customer_id
+HAVING COUNT(*) > 1;
+```
+
+During the inspection, no duplicated records were found.
+
 #### Checking for for fields with missing or incomplete information.
+
+
+
 #### Standardize the data
 
 ## Data Preparation
@@ -172,4 +216,3 @@ Before proceeding with the analysis, an assessment of data quality will be condu
 ### Business Recomendations
 ## Conclusion
 ## Appendices
-# northwind-traders-sql-project
