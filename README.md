@@ -46,9 +46,11 @@ The database consists of **14 tables**, which are interrelated to provide a comp
 ![Northwind Traders Tables Schema](assets/northwind-er-diagram.png)
 
 ### Table Structure
-Not all the data we have available in the Data Repository is important to the problem. At this stage, we will select the tables with the variables that really matter to answer the business questions.
+Not all the data we have available in the Data Repository is important to the problem. At this stage, we check the tables, select the variables that are relevant to answer the business questions and understand the relationship between the tables that will be used in the analysis.
 
-We already have access to the database schema, but if we needed to, we could list them using the following query:
+#### Selecting The Variables
+
+We already have access to the database schema, but if we needed to see all the tables, we could list them using the following query:
 
 ```sql
 SELECT table_name
@@ -61,13 +63,6 @@ ORDER BY
 	table_name;
 ```
 
-By inspecting the available schema, we were able to define the tables that we will use in the analysis:
-
-1. **orders**
-2. **order_details**
-3. **products**
-4. **customers**
-
 Let's also check which columns are in each table of interest through the query:
 
 ```sql
@@ -78,18 +73,23 @@ SELECT
 	is_nullable,
 	column_default
 FROM information_schema.columns
-WHERE 
-	table_schema NOT IN ('information_schema', 'pg_catalog')
-	AND table_name IN ('orders', 'order_details', 'products', 'customers')
+WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
 ORDER BY 
 	table_name,
 	ordinal_position;
 ```
 
-The `is_nullable` column allows us to check which variables accept `NULL` values. From this, we were able to generate some valuable information about the tables:
+By inspecting the tables and its columns, we can define the tables that we will use in the analysis:
+
+1. **orders**
+2. **order_details**
+3. **products**
+4. **customers**
+
+The `is_nullable` column allows us to check which variables accept `NULL` values. From this, we were able to generate some valuable information about the tables of interest:
 
 - **orders**
-    - With the exception of `order_id`, all the other columns are nullable. This is very dangerous, because it means that we can have an order without any information other than the id.
+    - With the exception of `order_id`, all the other columns are nullable. This is dangerous, because it means that we can have an order without any information other than the id.
 - **order_details**
     - There is no column that accepts `NULL` values in the table. 
 - **products**
@@ -98,6 +98,57 @@ The `is_nullable` column allows us to check which variables accept `NULL` values
 - **customers**
     - All the columns except for `customer_id` and `company_name` accept `NULL` values.
     - Since the `country` column accepts `NULL` values, we have to be cautious because one of the business questions involves a geographical filter.
+
+#### Checking The Relationship Between The Tables
+
+To finish our data inspection, let's see how the tables work together. To do this, let's find find their **primary keys (PKs)** and **foreign keys (FKs)**.
+
+```sql
+SELECT 
+	kcu.table_name, 
+	kcu.column_name,
+	tc.constraint_type
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+	ON kcu.constraint_name = tc.constraint_name
+	AND kcu.constraint_schema = tc.constraint_schema
+WHERE 
+	tc.constraint_type IN ('PRIMARY KEY', 'FOREIGN KEY')
+	AND kcu.table_name IN ('orders', 'order_details', 'products', 'customers')
+ORDER BY 
+	kcu.table_name ASC,
+	tc.constraint_type DESC;
+```
+
+All the tables have one PK and at least one FK. 
+
+The table `order_details` has two columns with the PK constraint: `order_id` and `product_id`. This means that, the table has a **composite primary key**, which indicates that the unique identifier of the data is the **unique combination of two columns**.
+
+In addition, the same primary keys in the `order_details` table are also foreign keys for the same table.
+
+Finally, let's list all the parent and child tables and columns to check the shared column between the tables.
+
+```sql
+SELECT 
+	ccu.table_name AS parent_table,
+	ccu.column_name AS parent_column,
+	kcu.table_name AS child_table,
+	kcu.column_name AS child_column     
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+	ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+	ON ccu.constraint_name = tc.constraint_name
+WHERE 
+	tc.constraint_type = 'FOREIGN KEY'
+	AND ccu.table_name IN ('orders', 'order_details', 'products', 'customers')
+	AND kcu.table_name IN ('orders', 'order_details', 'products', 'customers')
+ORDER BY kcu.table_name;
+```
+
+From the output, we check that:
+- The `order_details` table is directly connected to both `orders` and `products` tables via the `order_id` and `product_id`, respectively.
+- The `customers` table is connected to `orders` through the `customer_id`.
 
 ### Data Quality
 Before proceeding with the analysis, an assessment of data quality will be conducted to identify and address potential issues.
