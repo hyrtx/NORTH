@@ -5,22 +5,22 @@
 ![Andy Lee Trader Image Unsplash](assets/andy-li-trader-unsplash.jpg)
 
 ### Project Objectives
-The main objective of this project is to **carry out an comprehensive analysis of the sales data of the fictitious company Northwind Traders using SQL queries**. The aim is to extract valuable information that can support strategic business decisions.
+The main objective of this project is to **carry out an comprehensive analysis of the sales data of the fictitious company Northwind Traders using SQL queries**. The goal is to extract valuable information that can support strategic business decisions.
 
-This analysis will follow the **CRISP-DM methodology** to ensure a structured and effective approach.
+This analysis will follow an adaptation of the **CRISP-DM methodology** to ensure a structured and effective approach.
 
 ### Business Questions
 The analysis will address the following specific questions:
 
 1. **Revenue Reports**
     - What was the **total revenue in 1997?**
-    - What was the **monthly revenue growth** in 1997, and what was the **YTD (Year-To-Date) calculation**?
+    - What was the **monthly revenue growth** in 1997, and what was the **YTD (Year-To-Date) calculation?**
     - What was the **top 10 best-selling products** in terms of quantity and sales value?
 2. **Customer Segmentation**
     - What is the **total amount each customer has paid** so far?
     - How can we **segment customers into 5 groups** based on the total amount paid?
     - Which customers are in **groups 3, 4 and 5** for targeted marketing campaigns?
-    - Which **UK customers** have paid **more than $1000**?
+    - Which **UK customers** have paid **more than $1000?**
 
 ### Expected Benefits
 - **Enhanced Market Understanding**: Gain insights into which products perform best and which customers contribute the most to total revenue.
@@ -29,7 +29,15 @@ The analysis will address the following specific questions:
 - **Support for Decision-Making**: Provide concrete data to support management and operational decisions.
 
 ## Data Understanding
-This stage involves getting to know the data, such as the tables and column names, primary and foreign keys, relationships between tables and the data types in each table.
+This stage involves getting to know the data, such as:
+- Explaining how the data was loaded.
+- Inspecting the names of the tables and columns, the primary and foreign keys.
+- Understanding the relationships between the tables and the types of data in each table.
+
+### Extraction And Loading
+The tables were created in a local **PostgreSQL** database using an SQL Script used to replicate the Northwind Traders tables.
+
+The connection to the database was made via a DBMS (pgAdmin 4).
 
 ### Dataset Description
 The **Northwind Traders database** is a sample dataset simulating the operations of a food import and export company. The database covers various operational and commercial aspects of the company, including:
@@ -45,11 +53,10 @@ The database consists of **14 tables**, which are interrelated to provide a comp
 
 ![Northwind Traders Tables Schema](assets/northwind-er-diagram.png)
 
-### Table Structure
+### Data Inspection
 Not all the data we have available in the Data Repository is important to the problem. At this stage, we check the tables, select the variables that are relevant to answer the business questions and understand the relationship between the tables that will be used in the analysis.
 
 #### Selecting The Variables
-
 We already have access to the database schema, but if we needed to see all the tables, we could list them using the following query:
 
 ```sql
@@ -86,6 +93,8 @@ By inspecting the tables and its columns, we can define the tables that we will 
 3. **products**
 4. **customers**
 
+#### Checking the Tables That Accepts `NULL` Values
+
 The `is_nullable` column allows us to check which variables accept `NULL` values. From this, we were able to generate some valuable information about the tables of interest:
 
 - **orders**
@@ -100,7 +109,6 @@ The `is_nullable` column allows us to check which variables accept `NULL` values
     - Since the `country` column accepts `NULL` values, we have to be cautious because one of the business questions involves a geographical filter.
 
 #### Checking The Relationship Between The Tables
-
 To finish our data inspection, let's see how the tables work together. To do this, let's find find their **primary keys (PKs)** and **foreign keys (FKs)**.
 
 ```sql
@@ -153,7 +161,8 @@ From the output, we check that:
 ### Data Quality
 Before proceeding with the analysis, an assessment of data quality will be conducted to identify and address potential issues.
 
-#### Identifying and eliminating possible duplicate records
+#### Dealing With Duplicated Records
+Let's identify possible duplicated records and deal with them if necessary.
 
 ```sql
 -- Checking duplicates (orders)
@@ -195,16 +204,189 @@ HAVING COUNT(*) > 1;
 
 During the inspection, no duplicated records were found.
 
-#### Checking for for fields with missing or incomplete information.
+## Exploratory Analysis
+### Number of Records
+Let's count the number of customers and products we have in the tables.
+
+```sql
+-- Number of customers
+SELECT COUNT(*)
+FROM customers;
+
+-- Number of products
+SELECT COUNT(*)
+FROM products;
+```
+
+We have 91 customers and 77 products in the `customers` and `products` tables.
+
+In the `products` table, we have products marked as inactive. Let's check how many active products we have.
+
+```sql
+SELECT COUNT(*)
+FROM products
+WHERE discontinued = 0;
+```
+
+**69 of 77 products are active**. Now let's check the number of orders.
+
+```sql
+-- Number of orders
+SELECT COUNT(*)
+FROM orders;
+
+-- Number of records in order_details
+SELECT COUNT(*)
+FROM order_details;
+```
+
+The table `orders` has 830 and the `order_details` has 2155 records. Let's check if we have the same amount of **distinct orders** in the `order_details` table.
+
+```sql
+SELECT COUNT(DISTINCT order_id)
+FROM order_details;
+```
+
+The `order_details` table has 830, the same amount of records of the `orders` table. 
+
+### Minimum and Maximum Values
+Let's check the the minimum and maximum values for the columns we're interested in, which will be used in the analysis.
+
+```sql
+-- Min and Max Orders Date
+SELECT
+	MIN(order_date) AS min_order_date,
+	MAX(order_date) AS max_order_date
+FROM orders;
+
+-- Min and Max Quantity of Products Sold
+SELECT
+	MIN(quantity) AS min_quantity,
+	MAX(quantity) AS max_quantity
+FROM order_details;
+
+-- Min and Max Unit Price of Products Sold
+SELECT
+	MIN(unit_price) AS min_unit_price,
+	MAX(unit_price) AS max_unit_price
+FROM order_details;
+
+-- Min and Max Order Values
+SELECT
+	ROUND(MIN(quantity * unit_price)::numeric, 1) AS min_order_value,
+	ROUND(MAX(quantity * unit_price)::numeric, 1) AS max_order_value
+FROM order_details;
+```
+
+The date range for which we have orders is **1996-07 to 1998-05**. Also, **the biggest order value is $15,810**  and we have orders with **quantities of 2 units to 263.5 units**.
+
+Besides that, the **maximium unit_price in the orders is $263.5**.
+
+### Aggregating Values
+Finally, we will use aggregation functions on the orders value.
+
+First, let's group the order values by `order_id` with a **temporary view**. 
+
+This is necessary because the `order_values` table has `order_id` and `product_id` as primary keys.  **If we tried to calculate without grouping the orders first, the average would have an incorrect output.**
+
+```sql
+CREATE TEMP VIEW tempview_grouped_order_values AS (
+	SELECT
+		order_id,
+		SUM(quantity * unit_price) AS order_value
+	FROM order_details
+	GROUP BY order_id
+)
+```
+Now we can use some aggregation measures in the `order_value` to extract some insights:
+
+```sql
+SELECT
+	ROUND(SUM(order_value)::numeric, 2) AS sum_order_value,
+	ROUND(AVG(order_value)::numeric, 2) AS avg_order_value
+FROM cte;
+```
+
+The total value of 
+
+Now, we can sum the total values by some categories. Let's explore some more:
+
+## Data Analysis
+### Revenue Reports
+Before writing the queries to answer the business questions, let's create a temporary table with the data from the order_details table and create a column with the calculated order value. 
+
+This is important to avoid spending time calculating in several queries during the analysis.
+
+```sql
+-- Creating the temporary order_details table
+CREATE TEMP TABLE temp_order_details (
+	order_id smallint,
+	product_id smallint,
+	unit_price real,
+	quantity smallint,
+	discount real,
+	order_value real
+)
+
+-- Insertion of the original order_details fields alongside the order value calculation
+INSERT INTO temp_order_details
+	SELECT
+		order_id,
+		product_id,
+		unit_price,
+		quantity,
+		discount,
+		unit_price * quantity AS order_value
+	FROM order_details;
+```
+
+Let's check the temporary table and make sure the information is correct
+
+```sql
+-- Checking the temporary table
+SELECT *
+FROM temp_order_details
+LIMIT 10
+```
+<br />
+
+#### Total Revenue in 1997.
+
+```sql
+SELECT SUM(tod.order_value)
+FROM temp_order_details AS tod
+LEFT JOIN orders AS o
+	USING(order_id)
+WHERE EXTRACT(YEAR FROM o.order_date) = 1997;
+```
+
+The total revenue in the 97's was $658,389
+
+#### Monthly revenue growth in 1997 and YTD.
+
+#### Top 10 best-selling products in terms of quantity and sales value
+
+### Customer Segmentation
+
+#### Total amount each customer has paid so far
+
+#### Segmenting customers into 5 groups based on the total amount paid
+
+#### Customers in group 3, 4 and 5
+
+#### UK Customers who have paid more than $1,000
 
 
 
-#### Standardize the data
 
-## Data Preparation
-### Data Extraction and Loading
-### Data Cleaning
-### Data Transformation and Integration
+
+
+
+
+
+
+
+
 ## Modeling
 ### SQL Query Strategies
 ### Query Details
