@@ -298,6 +298,7 @@ CREATE TEMP VIEW tempview_grouped_order_values AS (
 	GROUP BY order_id
 )
 ```
+
 Now we can use some aggregation measures in the `order_value` to extract some insights:
 
 ```sql
@@ -307,9 +308,18 @@ SELECT
 FROM cte;
 ```
 
-The total value of 
+The total value of orders are $1.35M, and the average order value is $1.6K. 
 
-Now, we can sum the total values by some categories. Let's explore some more:
+And what is the value of these measurements with the discount applied? Let's see:
+
+```sql
+SELECT
+	ROUND(SUM(order_value_wdisc)::numeric, 2) AS sum_order_value_wdisc,
+	ROUND(AVG(order_value_wdisc)::numeric, 2) AS avg_order_value_wdisc
+FROM tempview_grouped_order_values;
+```
+
+With the discounts applied, the total value of the orders is $1.26M, $88K less than the value of the orders without the discounts. The average order value with discounts is $1.52K.
 
 ## Data Analysis
 ### Revenue Reports
