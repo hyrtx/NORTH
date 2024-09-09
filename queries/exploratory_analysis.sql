@@ -72,18 +72,10 @@ CREATE TEMP VIEW tempview_grouped_order_values AS (
 SELECT
 	ROUND(SUM(order_value)::numeric, 2) AS sum_order_value,
 	ROUND(AVG(order_value)::numeric, 2) AS avg_order_value
-		ROUND(SUM(v_gov.order_value_wdisc)::numeric, 2) AS sum_order_value_wdisc,
-	ROUND(AVG(v_gov.order_value_wdisc)::numeric, 2) AS avg_order_value_wdisc
 FROM tempview_grouped_order_values;
 
--- Sum and Average of orders values by year
+-- Sum and Average of the orders values with discounts applied
 SELECT
-	EXTRACT(YEAR FROM o.order_date) AS year,
-	ROUND(SUM(v_gov.order_value)::numeric, 2) AS sum_order_value,
-	ROUND(AVG(v_gov.order_value)::numeric, 2) AS avg_order_value,
-	ROUND(SUM(v_gov.order_value_wdisc)::numeric, 2) AS sum_order_value_wdisc,
-	ROUND(AVG(v_gov.order_value_wdisc)::numeric, 2) AS avg_order_value_wdisc
-FROM tempview_grouped_order_values AS v_gov
-LEFT JOIN orders AS o
-	USING(order_id)
-GROUP BY EXTRACT(YEAR FROM o.order_date)
+	ROUND(SUM(order_value_wdisc)::numeric, 2) AS sum_order_value_wdisc,
+	ROUND(AVG(order_value_wdisc)::numeric, 2) AS avg_order_value_wdisc
+FROM tempview_grouped_order_values;
