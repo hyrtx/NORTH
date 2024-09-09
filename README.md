@@ -322,6 +322,12 @@ FROM tempview_grouped_order_values;
 With the discounts applied, the total value of the orders is $1.26M, $88K less than the value of the orders without the discounts. The average order value with discounts is $1.52K.
 
 ## Data Analysis
+This stage involves the development of structured SQL queries to extract and analyze the data according to the defined needs.. The approach will include:
+
+- **Model data by creating views**: This will reduce the time it takes to write queries by not having to join several tables and write calculations in several queries.
+- **Breaking Down Questions into Sub-Queries**: Decomposing the questions into smaller, more manageable parts.
+
+### Modelling
 ### Revenue Reports
 Before writing the queries to answer the business questions, let's create a temporary table with the data from the order_details table and create a column with the calculated order value. 
 
@@ -397,8 +403,7 @@ The total revenue in the 97's was $658,389
 
 
 
-## Modeling
-### SQL Query Strategies
+
 ### Query Details
 ## Evaluation
 ### Result Validation
