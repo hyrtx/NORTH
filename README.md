@@ -328,43 +328,29 @@ This stage involves the development of structured SQL queries to extract and ana
 - **Breaking Down Questions into Sub-Queries**: Decomposing the questions into smaller, more manageable parts.
 
 ### Modelling
-### Revenue Reports
-Before writing the queries to answer the business questions, let's create a temporary table with the data from the order_details table and create a column with the calculated order value. 
+Before writing the queries to answer the business questions, let's create a temporary view with all the IDs involved in the order, the date of the order, the indicators and the calculation of the order value.
 
 This is important to avoid spending time calculating in several queries during the analysis.
 
 ```sql
--- Creating the temporary order_details table
-CREATE TEMP TABLE temp_order_details (
-	order_id smallint,
-	product_id smallint,
-	unit_price real,
-	quantity smallint,
-	discount real,
-	order_value real
-)
-
--- Insertion of the original order_details fields alongside the order value calculation
-INSERT INTO temp_order_details
+CREATE TEMP VIEW view_orders_values (
 	SELECT
-		order_id,
-		product_id,
-		unit_price,
-		quantity,
-		discount,
-		unit_price * quantity AS order_value
-	FROM order_details;
+		o.order_date,
+		o.customer_id,
+		od.order_id,
+		od.product_id,
+		od.quantity,
+		od.unit_price,
+		od.quantity * od.unit_price AS order_value,
+		od.quantity * od.unit_price * (1 - discount) AS order_value_wdisc
+	FROM order_details AS od
+	JOIN orders AS o
+		USING(order_id)
+)
 ```
 
-Let's check the temporary table and make sure the information is correct
 
-```sql
--- Checking the temporary table
-SELECT *
-FROM temp_order_details
-LIMIT 10
-```
-<br />
+### Business Questions
 
 #### Total Revenue in 1997.
 
