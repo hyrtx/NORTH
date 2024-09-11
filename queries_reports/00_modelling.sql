@@ -1,5 +1,5 @@
--- View with all the ids, order date and order value calculation
-CREATE TEMP VIEW view_orders_values AS (
+-- Temporary Table with all the ids, order date and order value calculation
+CREATE TEMP TABLE ttable_orders_values AS (
 	SELECT
 		o.order_date,
 		o.customer_id,
@@ -12,4 +12,4 @@ CREATE TEMP VIEW view_orders_values AS (
 	FROM order_details AS od
 	JOIN orders AS o
 		USING(order_id)
-)
+);
