@@ -1,5 +1,5 @@
 -- Temporary Table with all the ids, order date and order value calculation
-CREATE TEMP TABLE ttable_orders_values AS (
+CREATE TEMP TABLE temp_table_orders_values AS (
 	SELECT
 		o.order_date,
 		o.customer_id,
