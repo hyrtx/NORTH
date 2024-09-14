@@ -1,15 +1,21 @@
-# Using SQL to Analyze Northwind Traders Data
+# Using SQL to Create Northwind Traders Data Reports
 ## Business Understading
 
 ![Andy Lee Trader Image Unsplash](assets/andy-li-trader-unsplash.jpg)
+*Photo by Andy Lee on [Unsplash](https://unsplash.com).*
 
 ### Project Objectives
-The main objective of this project is to **carry out an comprehensive analysis of the sales data of the fictitious company Northwind Traders using SQL queries**. The goal is to extract valuable information that can support strategic business decisions.
+The purpose of this project is to demonstrate the use of SQL to generate reports that address key business questions for Northwind Traders, a fictitious company. 
+
+By leveraging SQL queries, valuable insights are extracted to assist with revenue tracking, customer segmentation, and sales optimization. The focus is on creating structured reports that support strategic decision-making, highlighting the essential role of SQL in solving business problems and efficiently organizing data.
+
+
+The main objective of this project is to **create sales reports that answer the business questions of the fictitious company Northwind Traders using SQL queries**. The aim is to extract valuable information that can support strategic business decisions.
 
 This analysis will follow an adaptation of the **CRISP-DM methodology** to ensure a structured and effective approach.
 
 ### Business Questions
-The analysis will address the following specific questions:
+The project will address the following specific questions:
 
 1. **Revenue Reports**
     - What was the **total revenue in 1997?**
@@ -320,8 +326,8 @@ FROM tempview_grouped_order_values;
 
 With the discounts applied, the total value of the orders is $1.26M, $88K less than the value of the orders without the discounts. The average order value with discounts is $1.52K.
 
-## Data Analysis
-This stage involves the development of structured SQL queries to extract and analyze the data according to the defined needs.. The approach will include:
+## Development
+This stage involves the development of structured SQL queries to extract and analyze the data according to the defined needs. The approach will include:
 
 - **Model data by creating views**: This will reduce the time it takes to write queries by not having to join several tables and write calculations in several queries.
 - **Breaking Down Questions into Sub-Queries**: Decomposing the questions into smaller, more manageable parts.
@@ -329,10 +335,11 @@ This stage involves the development of structured SQL queries to extract and ana
 ### Modelling
 Before writing the queries to answer the business questions, let's create a temporary view with all the IDs involved in the order, the date of the order, the indicators and the calculation of the order value.
 
-This is important to avoid spending time calculating in several queries during the analysis.
+This is important to avoid spending time calculating the value order in several queries during the analysis.
 
 ```sql
-CREATE TEMP VIEW view_orders_values (
+-- Temporary Table with all the ids, order date and order value calculation
+CREATE TEMP TABLE temp_table_orders_values AS (
 	SELECT
 		o.order_date,
 		o.customer_id,
@@ -345,14 +352,13 @@ CREATE TEMP VIEW view_orders_values (
 	FROM order_details AS od
 	JOIN orders AS o
 		USING(order_id)
-)
+);
 ```
 
-
-### Business Questions
+### Reports
+Now, let's address the business questions using SQL queries to create reports that answer them.
 
 #### Total Revenue in 1997.
-
 ```sql
 SELECT SUM(tod.order_value)
 FROM temp_order_details AS tod
@@ -361,21 +367,142 @@ LEFT JOIN orders AS o
 WHERE EXTRACT(YEAR FROM o.order_date) = 1997;
 ```
 
-The total revenue in the 97's was $658,389
-
 #### Monthly revenue growth in 1997 and YTD.
+```sql
+-- The cte_1 filter the most recent year and its max month
+WITH cte_1 AS (
+	SELECT
+		EXTRACT(YEAR FROM order_date) AS year,
+		MAX(EXTRACT(MONTH FROM order_date)) AS max_month
+	FROM temp_table_orders_values
+	GROUP BY EXTRACT(YEAR FROM order_date)
+	ORDER BY year DESC
+	LIMIT 1
+),
 
-#### Top 10 best-selling products in terms of quantity and sales value
+-- The cte_2 groups sales by year and month and converts the monthly_sales type to numeric, so we can round up later
+cte_2 AS (
+	SELECT
+		EXTRACT(YEAR FROM order_date) AS year,
+		EXTRACT(MONTH FROM order_date) AS month,
+		SUM(order_value_wdisc)::numeric as monthly_sales
+	FROM temp_table_orders_values
+	GROUP BY
+		year,
+		month
+	ORDER BY
+		year,
+		month
+),
+
+-- The cte_3 filters the results by the years that have the same months as the recent year,
+-- and creates the measure with the last month's sales to make comparisons.
+cte_3 AS (
+	SELECT
+		cte_2.year,
+		cte_2.month,
+		cte_2.monthly_sales,
+		LAG(cte_2.monthly_sales, 1) OVER (PARTITION BY cte_2.year ORDER BY cte_2.month) AS last_month_sales
+	FROM cte_2
+	JOIN cte_1
+		ON cte_2.month <= cte_1.max_month
+)
+
+SELECT
+	year,
+	month,
+	ROUND(monthly_sales, 2) AS monthly_sales,
+	ROUND(SUM(monthly_sales) OVER (PARTITION BY year ORDER BY month), 2) AS ytd_sales,
+	ROUND(monthly_sales - last_month_sales, 2) AS variation_abs,
+	ROUND((monthly_sales / last_month_sales - 1) * 100, 2) AS variation_perc
+FROM cte_3
+ORDER BY
+	year DESC,
+	month
+```
+
+#### Top 10 best-selling products in terms of sales value
+```sql
+SELECT 
+	product_name,
+	RANK() OVER (ORDER BY SUM(order_value) DESC) AS ranking,
+	ROUND(SUM(order_value)::numeric, 2) AS sales_value
+FROM temp_table_orders_values
+JOIN products
+	USING(product_id)
+GROUP BY product_name
+LIMIT 10;
+```
 
 ### Customer Segmentation
-
 #### Total amount each customer has paid so far
+```sql
+SELECT
+	company_name,
+	ROUND(SUM(order_value_wdisc)::numeric, 2) AS amount_paid
+FROM temp_table_orders_values AS vov
+JOIN customers AS c
+	USING(customer_id)
+GROUP BY company_name
+ORDER BY
+	amount_paid DESC,
+	company_name
+```
 
 #### Segmenting customers into 5 groups based on the total amount paid
+```sql
+SELECT
+    company_name,
+    ROUND(SUM(order_value_wdisc)::numeric, 2) AS amount_paid,
+    NTILE(5) OVER (ORDER BY SUM(order_value_wdisc) DESC) AS customer_segmentation
+FROM temp_table_orders_values AS vov
+JOIN customers
+    USING(customer_id)
+GROUP BY company_name
+```
 
 #### Customers in group 3, 4 and 5
+```sql
+-- CTE made for segment the customers into 5 groups by amount paid
+WITH cte AS (
+	SELECT
+		company_name,
+		ROUND(SUM(order_value_wdisc)::numeric, 2) AS amount_paid,
+		NTILE(5) OVER (ORDER BY SUM(order_value_wdisc) DESC) AS customer_segmentation
+	FROM temp_table_orders_values AS vov
+	JOIN customers
+		USING(customer_id)
+	GROUP BY company_name
+)
+
+SELECT
+	company_name,
+	customer_segmentation
+FROM cte
+WHERE customer_segmentation IN (3, 4, 5)
+ORDER BY
+	customer_segmentation,
+	amount_paid DESC
+```
 
 #### UK Customers who have paid more than $1,000
+```sql
+SELECT
+	company_name,
+	ROUND(SUM(order_value_wdisc)::numeric, 2) AS amount_paid,
+	RANK() OVER (ORDER BY SUM(order_value_wdisc) DESC) AS ranking
+FROM temp_table_orders_values AS vov
+JOIN customers AS c
+	USING(customer_id)
+WHERE country = 'UK'
+GROUP BY company_name
+HAVING SUM(order_value_wdisc) > 1000;
+```
+
+## Concluding Remarks
+In this project, I successfully created SQL queries that addressed critical business questions for Northwind Traders. The reports generated offer valuable insights into the company's revenue patterns, customer segmentation, and top-selling products. 
+
+By structuring the database queries efficiently and modeling the data appropriately, the project highlights the importance of clear, actionable reports in supporting business decisions. While no additional data analysis was performed beyond the report creation, the project illustrates how well-constructed SQL queries can provide a foundation for decision-making and strategic planning.
 
 ## Replicate The Project
 ### Manually
@@ -424,22 +551,6 @@ docker-compose down
 docker-compose down -v
 ```
 
-
-
-
-
-
-
-
-
-
-
-### Query Details
-## Evaluation
-### Result Validation
-### Insights Analysis
-## Deployment
-### Presentation of Results
-### Business Recomendations
-## Conclusion
-## Appendices
+## References
+1. [Luciano Galvão](https://github.com/lvgalvao), Instructor of the course *Jornada de Dados* - Provided the inspiration for the project.
+2. Andy Lee on [Unsplash](https://unsplash.com) - Photo used in the project
