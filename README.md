@@ -1,5 +1,4 @@
 # Using SQL to Analyze Northwind Traders Data
-
 ## Business Understading
 
 ![Andy Lee Trader Image Unsplash](assets/andy-li-trader-unsplash.jpg)
@@ -15,7 +14,7 @@ The analysis will address the following specific questions:
 1. **Revenue Reports**
     - What was the **total revenue in 1997?**
     - What was the **monthly revenue growth** in 1997, and what was the **YTD (Year-To-Date) calculation?**
-    - What was the **top 10 best-selling products** in terms of quantity and sales value?
+    - What was the **top 10 best-selling products** in terms of sales value?
 2. **Customer Segmentation**
     - What is the **total amount each customer has paid** so far?
     - How can we **segment customers into 5 groups** based on the total amount paid?
@@ -378,7 +377,52 @@ The total revenue in the 97's was $658,389
 
 #### UK Customers who have paid more than $1,000
 
+## Replicate The Project
+### Manually
+Use the SQL file provided, `nortwhind.sql`, to populate your database.
 
+### With Docker and Docker Compose
+**Prerequisite**: Install Docker and Docker Compose.
+
+* [Get Started With Docker](https://www.docker.com/get-started)
+* [Install Docker Compose](https://docs.docker.com/compose/install/)
+
+#### Installing
+1. **Start Docker Compose**: run the command to upload the services:
+```
+docker-compose up
+```
+
+Wait for configuration messages, like:
+```
+Creating network "northwind_psql_db" with driver "bridge"
+Creating volume "northwind_psql_db" with default driver
+Creating volume "northwind_psql_pgadmin" with default driver
+Creating pgadmin ... done
+Creating db      ... done
+```
+
+2. **Connect PgAdmin**: Access PgAdmin via the URL [http://localhost:5050](http://localhost:5050), with the password `postgres`.
+
+Set up a new server in PgAdmin:
+* **General tab**:
+	* Name: db
+* **Connection tab**
+	* Host name: db
+	* User name: postgres
+	* Password: postgres
+
+Next, select the `northwind` database.
+
+3. **Stopping Docker Compose**: stop the server started by `docker-compose up` using Ctrl-C and remove the containers with:
+```
+docker-compose down
+```
+
+4. **Files and Persistence**: Your modifications to the Postgres databases will be persisted on Docker volume postgresql_data and can be recovered by restarting Docker Compose with `docker-compose up`. To delete the data from the database, run:
+```
+docker-compose down -v
+```
 
 
 
