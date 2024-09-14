@@ -1,4 +1,5 @@
-WITH cte_customer_segmentation AS (
+-- CTE made for segment the customers into 5 groups by amount paid
+WITH cte AS (
 	SELECT
 		company_name,
 		ROUND(SUM(order_value_wdisc)::numeric, 2) AS amount_paid,
@@ -12,7 +13,7 @@ WITH cte_customer_segmentation AS (
 SELECT
 	company_name,
 	customer_segmentation
-FROM cte_customer_segmentation
+FROM cte
 WHERE customer_segmentation IN (3, 4, 5)
 ORDER BY
 	customer_segmentation,
