@@ -329,13 +329,11 @@ With the discounts applied, the total value of the orders is $1.26M, $88K less t
 ## Development
 This stage involves the development of structured SQL queries to extract and analyze the data according to the defined needs. The approach will include:
 
-- **Model data by creating views**: This will reduce the time it takes to write queries by not having to join several tables and write calculations in several queries.
-- **Breaking Down Questions into Sub-Queries**: Decomposing the questions into smaller, more manageable parts.
+- **Model data by creating temporary tables**: This will reduce the time it takes to write queries by not having to join several tables and write calculations in several queries.
+- **Breaking Down Questions into queries**: Decomposing the questions into smaller, more manageable parts.
 
 ### Modelling
-Before writing the queries to answer the business questions, let's create a temporary view with all the IDs involved in the order, the date of the order, the indicators and the calculation of the order value.
-
-This is important to avoid spending time calculating the value order in several queries during the analysis.
+Before writing the queries to answer the business questions, let's create a temporary table with all the IDs involved in the order, the date of the order, the indicators and the calculation of the order value.This way, we avoid spending time calculating the value order in several queries during the analysis.
 
 ```sql
 -- Temporary Table with all the ids, order date and order value calculation
@@ -360,11 +358,9 @@ Now, let's address the business questions using SQL queries to create reports th
 
 #### Total Revenue in 1997.
 ```sql
-SELECT SUM(tod.order_value)
-FROM temp_order_details AS tod
-LEFT JOIN orders AS o
-	USING(order_id)
-WHERE EXTRACT(YEAR FROM o.order_date) = 1997;
+SELECT SUM(order_value_wdisc)
+FROM temp_table_orders_values
+WHERE EXTRACT(YEAR FROM order_date) = 1997;
 ```
 
 #### Monthly revenue growth in 1997 and YTD.
