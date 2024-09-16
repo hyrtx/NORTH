@@ -1,9 +1,26 @@
 # Using SQL to Create Northwind Traders Data Reports
-## Business Understading
-
 ![Andy Lee Trader Image Unsplash](assets/andy-li-trader-unsplash.jpg)
 *Photo by Andy Lee on [Unsplash](https://unsplash.com).*
 
+## Table Of Contents
+1. [Business Understanding](#business-understading)
+	* [Project Objectives](#project-objectives)
+	* [Business Questions](#business-questions)
+	* [Expected Benefits](#expected-benefits)
+2. [Data Understanding](#data-understanding)
+	* [Extraction and Loading](#extraction-and-loading)
+	* [Dataset Description](#dataset-description)
+	* [Data Inspection](#data-inspection)
+	* [Data Quality](#data-quality)
+3. [Exploratory Analysis](#exploratory-analysis)
+4. [Development](#development)
+	* [Modelling](#modelling)
+	* [Reports](#reports)
+5. [Concluding Remarks](#concluding-remarks)
+6. [Replicate The Project](#replicate-the-project)
+7. [References](#references)
+
+## Business Understading
 ### Project Objectives
 The purpose of this project is to demonstrate the use of SQL to generate reports that address key business questions for Northwind Traders, a fictitious company. 
 
@@ -430,7 +447,6 @@ GROUP BY product_name
 LIMIT 10;
 ```
 
-### Customer Segmentation
 #### Total amount each customer has paid so far
 ```sql
 SELECT
